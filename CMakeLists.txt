@@ -60,6 +60,7 @@ target_include_directories(deviation_corrector
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${EIGEN3_INCLUDE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/json
 )
 
 target_link_libraries(deviation_corrector

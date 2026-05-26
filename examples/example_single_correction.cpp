@@ -28,7 +28,7 @@ int main() {
     
     // 设置旋转 (示例: 相机相对于法兰有微小倾斜)
     double tilt_angle = 5.0 * 3.14159 / 180.0;  // 5度倾斜
-    T_flange_cam.block<3,3>(0,0) = DeviationCorrector::eulerXYZToMatrix(
+    T_flange_cam.block<3,3>(0,0) = DeviationCorrector::eulerXyzToMatrix(
         Eigen::Vector3d(tilt_angle, 0, 0), false);
     
     corrector.setHandEyeCalibration(T_flange_cam);

@@ -67,7 +67,7 @@ int main() {
     // 设置手眼标定
     Eigen::Matrix4d T_flange_cam = Eigen::Matrix4d::Identity();
     T_flange_cam(2, 3) = 150.0;
-    servo.getCorrector().setHandEyeCalibration(T_flange_cam);
+    servo.setHandEyeCalibration(T_flange_cam);
     
     // ==================== 示教阶段 ====================
     std::cout << "【阶段1: 示教】\n";
@@ -88,7 +88,7 @@ int main() {
               << " 位置=[" << std_tag.tvec.transpose() << "] m\n";
     
     // 记录标准点
-    servo.recordStandardPoint(std_pose, std_tag);
+    servo.recordStandardPoint(std_pose, std_tag, 500.0f, 300.0f, 200.0f);
     std::cout << "标准点已记录\n\n";
     
     // 示教多个拍照点
@@ -102,13 +102,13 @@ int main() {
     for (const auto& [name, pose] : teaching_points) {
         robot.moveTo(pose);
         camera.capture();
-        int count = servo.addPhotoPoint(name, pose);
+        int count = servo.addPhotoPoint(name, pose, 500.0f, 300.0f, 200.0f);
         std::cout << "  添加 " << name << " (共" << count << "个点位)\n\n";
     }
     
     // 完成示教
     recipe = servo.finishTeaching();
-    std::cout << "示教完成! 共记录 " << recipe.photo_points.size() << " 个拍照点\n";
+    std::cout << "示教完成! 共记录 " << recipe.photoPoints.size() << " 个拍照点\n";
     
     // 保存配方
     servo.saveRecipe("workspace/paths/recipes/" + recipe.id + ".json");
@@ -131,7 +131,7 @@ int main() {
     Pose6D current_pose = robot.getPosition();
     
     // 计算偏差和所有点位的新位姿
-    auto new_poses = servo.computeNewPoses(current_pose, prod_tag);
+    auto new_poses = servo.computeNewPoses(current_pose, prod_tag, 500.0f, 300.0f, 200.0f);
     
     std::cout << "\n偏差传播结果:\n";
     for (const auto& [name, pose] : new_poses) {
