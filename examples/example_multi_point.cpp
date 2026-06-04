@@ -1,156 +1,162 @@
 /**
  * @file example_multi_point.cpp
- * @brief 多点位视觉伺服示例
- * 
- * 演示完整的示教-生产流程
+ * @brief 多点位视觉伺服 — 示教-生产完整示例
  */
 
 #include "../include/deviation_corrector.hpp"
+
 #include <iostream>
 #include <iomanip>
 
 using namespace vision_servo;
 
-// 模拟机器人控制器
-class MockRobotController {
+/**
+ * @brief 模拟机器人控制器
+ */
+class MockRobotController
+{
 public:
-    Pose6D getPosition() const { return current_pose_; }
-    void moveTo(const Pose6D& pose) { 
-        current_pose_ = pose;
-        std::cout << "  [机器人] 移动到: X=" << pose.x << " Y=" << pose.y 
-                  << " Z=" << pose.z << "\n";
+    Pose6D GetPosition() const
+    {
+        return currentPose_;
     }
+
+    void MoveTo(const Pose6D& pose)
+    {
+        currentPose_ = pose;
+        std::cout << "  [Robot] MoveTo: X=" << pose.x
+                  << " Y=" << pose.y << " Z=" << pose.z << "\n";
+    }
+
 private:
-    Pose6D current_pose_{500, 300, 400, 180, 0, 0};
+    Pose6D currentPose_{500.0, 300.0, 400.0, 180.0, 0.0, 0.0};
 };
 
-// 模拟相机
-class MockCamera {
+/**
+ * @brief 模拟相机
+ */
+class MockCamera
+{
 public:
-    void capture() { std::cout << "  [相机] 拍照完成\n"; }
+    void Capture()
+    {
+        std::cout << "  [Camera] Captured\n";
+    }
 };
 
-// 模拟视觉检测器
-class MockVisionDetector {
+/**
+ * @brief 模拟视觉检测器
+ */
+class MockVisionDetector
+{
 public:
-    TagDetection detect(const std::string& scenario) {
+    TagDetection Detect(const std::string& scenario)
+    {
         TagDetection tag;
         tag.id = 0;
-        
-        if (scenario == "teaching") {
-            // 示教时的Tag位置
-            tag.tvec = Eigen::Vector3d(0.0, 0.0, 0.5);  // 相机前方0.5m
+
+        if (scenario == "teaching")
+        {
+            tag.tvec = Eigen::Vector3d(0.0, 0.0, 0.5);
             tag.rvec = Eigen::Vector3d(0.0, 0.0, 0.0);
-        } else {
-            // 生产时的Tag位置 (有偏移)
-            tag.tvec = Eigen::Vector3d(0.005, 0.003, 0.5);  // 偏移5mm, 3mm
-            tag.rvec = Eigen::Vector3d(0.0, 0.0, 0.01);     // 旋转约0.5度
         }
-        
+        else
+        {
+            tag.tvec = Eigen::Vector3d(0.005, 0.003, 0.5);
+            tag.rvec = Eigen::Vector3d(0.0, 0.0, 0.01);
+        }
+
         return tag;
     }
 };
 
-int main() {
+int main()
+{
     std::cout << "========================================\n";
     std::cout << "  多点位视觉伺服示例\n";
     std::cout << "========================================\n\n";
-    
-    // 创建模拟设备
+
     MockRobotController robot;
     MockCamera camera;
     MockVisionDetector detector;
-    
-    // 创建多点位伺服控制器
+
     MultiPointServo servo;
-    
-    // 设置手眼标定
-    Eigen::Matrix4d T_flange_cam = Eigen::Matrix4d::Identity();
-    T_flange_cam(2, 3) = 150.0;
-    servo.setHandEyeCalibration(T_flange_cam);
-    
-    // ==================== 示教阶段 ====================
-    std::cout << "【阶段1: 示教】\n";
+
+    // 手眼标定: 相机在法兰下方 150mm
+    Eigen::Matrix4d tFlangeCam = Eigen::Matrix4d::Identity();
+    tFlangeCam(2, 3) = 150.0;
+    servo.setHandEyeCalibration(tFlangeCam);
+
+    // ========== 示教 ==========
+    std::cout << "[Phase 1: Teaching]\n";
     std::cout << "----------------------------------------\n";
-    
-    // 开始示教
-    ServoRecipe recipe = servo.startTeaching("柔性拍摄配方_001");
-    std::cout << "创建配方: " << recipe.name << "\n\n";
-    
-    // 移动到标准位置
-    Pose6D std_pose(500, 300, 400, 180, 0, 0);
-    robot.moveTo(std_pose);
-    camera.capture();
-    
-    // 检测标准位置Tag
-    TagDetection std_tag = detector.detect("teaching");
-    std::cout << "  [视觉] 检测到Tag ID=" << std_tag.id 
-              << " 位置=[" << std_tag.tvec.transpose() << "] m\n";
-    
-    // 记录标准点
-    servo.recordStandardPoint(std_pose, std_tag, 500.0f, 300.0f, 200.0f);
-    std::cout << "标准点已记录\n\n";
-    
-    // 示教多个拍照点
-    std::vector<std::pair<std::string, Pose6D>> teaching_points = {
-        {"拍照点1", Pose6D(550, 300, 380, 180, 0, 0)},
-        {"拍照点2", Pose6D(450, 300, 380, 180, 0, 0)},
-        {"拍照点3", Pose6D(500, 350, 380, 180, 0, 0)},
-        {"拍照点4", Pose6D(500, 250, 380, 180, 0, 0)},
+
+    servo.startTeaching("flex_recipe_001");
+
+    const Pose6D stdPose(500.0, 300.0, 400.0, 180.0, 0.0, 0.0);
+    robot.MoveTo(stdPose);
+    camera.Capture();
+
+    TagDetection stdTag = detector.Detect("teaching");
+    std::cout << "  [Vision] Tag ID=" << stdTag.id
+              << " pos=[" << stdTag.tvec.transpose() << "] m\n";
+
+    servo.recordStandardPoint(stdPose, stdTag, 500.0f, 300.0f, 200.0f);
+    std::cout << "  Standard point recorded\n\n";
+
+    const std::vector<std::pair<std::string, Pose6D>> teachingPoints = {
+        {"点1", Pose6D(550.0, 300.0, 380.0, 180.0, 0.0, 0.0)},
+        {"点2", Pose6D(450.0, 300.0, 380.0, 180.0, 0.0, 0.0)},
+        {"点3", Pose6D(500.0, 350.0, 380.0, 180.0, 0.0, 0.0)},
+        {"点4", Pose6D(500.0, 250.0, 380.0, 180.0, 0.0, 0.0)},
     };
-    
-    for (const auto& [name, pose] : teaching_points) {
-        robot.moveTo(pose);
-        camera.capture();
-        int count = servo.addPhotoPoint(name, pose, 500.0f, 300.0f, 200.0f);
-        std::cout << "  添加 " << name << " (共" << count << "个点位)\n\n";
+
+    for (const auto& [name, pose] : teachingPoints)
+    {
+        robot.MoveTo(pose);
+        camera.Capture();
+        const int count = servo.addPhotoPoint(name, pose, 500.0f, 300.0f, 200.0f);
+        std::cout << "  Added " << name << " (total " << count << ")\n";
     }
-    
-    // 完成示教
-    recipe = servo.finishTeaching();
-    std::cout << "示教完成! 共记录 " << recipe.photoPoints.size() << " 个拍照点\n";
-    
-    // 保存配方
-    servo.saveRecipe("workspace/paths/recipes/" + recipe.id + ".json");
-    std::cout << "配方已保存\n\n";
-    
-    // ==================== 生产阶段 ====================
-    std::cout << "【阶段2: 生产】\n";
+
+    const ServoRecipe recipe = servo.finishTeaching();
+    std::cout << "\nTeaching done, " << recipe.photoPoints.size() << " points\n";
+
+    servo.saveRecipe("recipe_" + recipe.id + ".json");
+    std::cout << "Recipe saved\n\n";
+
+    // ========== 生产 ==========
+    std::cout << "[Phase 2: Production]\n";
     std::cout << "----------------------------------------\n";
-    
-    // 回到标准位置
-    robot.moveTo(std_pose);
-    camera.capture();
-    
-    // 检测生产环境下的Tag
-    TagDetection prod_tag = detector.detect("production");
-    std::cout << "  [视觉] 检测到Tag ID=" << prod_tag.id 
-              << " 位置=[" << prod_tag.tvec.transpose() << "] m\n";
-    
-    // 获取当前机器人位姿
-    Pose6D current_pose = robot.getPosition();
-    
-    // 计算偏差和所有点位的新位姿
-    auto new_poses = servo.computeNewPoses(current_pose, prod_tag, 500.0f, 300.0f, 200.0f);
-    
-    std::cout << "\n偏差传播结果:\n";
-    for (const auto& [name, pose] : new_poses) {
-        std::cout << "  " << name << ": ";
-        std::cout << "X=" << std::fixed << std::setprecision(2) << pose.x
-                  << " Y=" << pose.y << " Z=" << pose.z << "\n";
+
+    robot.MoveTo(stdPose);
+    camera.Capture();
+
+    const TagDetection prodTag = detector.Detect("production");
+    std::cout << "  [Vision] Tag ID=" << prodTag.id
+              << " pos=[" << prodTag.tvec.transpose() << "] m\n";
+
+    const Pose6D curPose = robot.GetPosition();
+    const auto newPoses = servo.computeNewPoses(curPose, prodTag, 500.0f, 300.0f, 200.0f);
+
+    std::cout << "\nCompensated poses:\n";
+    for (const auto& [name, pose] : newPoses)
+    {
+        std::cout << "  " << name << ": X=" << std::fixed << std::setprecision(2)
+                  << pose.x << " Y=" << pose.y << " Z=" << pose.z << "\n";
     }
-    
-    // 执行纠偏后的运动
-    std::cout << "\n执行纠偏运动:\n";
-    for (const auto& [name, pose] : new_poses) {
-        std::cout << "  移动到 " << name << "...\n";
-        robot.moveTo(pose);
-        camera.capture();
+
+    std::cout << "\nExecuting correction:\n";
+    for (const auto& [name, pose] : newPoses)
+    {
+        std::cout << "  Moving to " << name << "...\n";
+        robot.MoveTo(pose);
+        camera.Capture();
     }
-    
+
     std::cout << "\n========================================\n";
-    std::cout << "  生产流程完成!\n";
+    std::cout << "  Production complete!\n";
     std::cout << "========================================\n";
-    
+
     return 0;
 }
